@@ -6,10 +6,11 @@ import { DeployFunction } from "hardhat-deploy/dist/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { ethers, run, network } from "hardhat";
 import { developmentChains, networkConfig } from "../helper-hardhat-config";
+import verify from "../utils/verify";
 
 // destructure the functions, and variables from a parent interface/class
 // that we need to use them directly,
-export default async ({
+const deployFundMe = async ({
   deployments,
   getNamedAccounts,
   network,
@@ -39,4 +40,18 @@ export default async ({
     args: [ethUSDPriceFeedAddress],
     log: true,
   });
+
+  if (
+    !developmentChains.includes(network.name) &&
+    process.env.ETHERSCAN_API_KEY
+  ) {
+    await verify(fundMe.address, [ethUSDPriceFeedAddress]);
+  }
+  log("----------------------------------------------------");
 };
+
+// export it so it gets be called/imported in other files
+export default deployFundMe;
+// we add a tag such that it can be run independently
+// `hardhat deploy --tags fundme`
+deployFundMe.tags = ["all", "fundme"];
