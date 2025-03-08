@@ -21,3 +21,7 @@ yarn add -D @nomiclabs/hardhat-ethers hardhat-deploy-ethers ethers
 # Optional LSP
 yarn add -D @nomicfoundation/solidity-language-server
 ```
+
+## Notes
+
+Follow [Patrick's repo](https://github.com/PatrickAlphaC/hardhat-fund-me-fcc/tree/typescript) in case anything is missing.

@@ -7,13 +7,14 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { ethers, run, network } from "hardhat";
 import { developmentChains, networkConfig } from "../helper-hardhat-config";
 
-const deployFunc: DeployFunction = async function (
-  hre: HardhatRuntimeEnvironment
-) {
-  // destructure the functions, and variables from a parent interface/class
-  // that we need to use them directly,
-  // but we can always use `hre.getNamedAccounts()` though
-  const { deployments, getNamedAccounts, network } = hre;
+// destructure the functions, and variables from a parent interface/class
+// that we need to use them directly,
+export default async ({
+  deployments,
+  getNamedAccounts,
+  network,
+}: HardhatRuntimeEnvironment) => {
+  // but we can always use `deployments.deploy()` though
   const { deploy, log } = deployments;
 
   // grab deployer account from getNamedAccounts()
@@ -30,8 +31,7 @@ const deployFunc: DeployFunction = async function (
   else {
     ethUSDPriceFeedAddress = networkConfig[network.name]["ethUsdPriceFeed"]!;
   }
-  // when going for localhost or hardhat network, we want to use a mock
-  // of the price feed of ETH-USD https://docs.chain.link/data-feeds/price-feeds/addresses?network=ethereum&page=1#sepolia-testnet
+
   const fundMe = await deploy("FundMe", {
     // list of overrides we can apply to the constructor
     from: deployer,
@@ -40,6 +40,3 @@ const deployFunc: DeployFunction = async function (
     log: true,
   });
 };
-
-// export the function so `hardhat deploy` can call it
-export default deployFunc;
