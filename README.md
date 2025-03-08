@@ -25,3 +25,5 @@ yarn add -D @nomicfoundation/solidity-language-server
 ## Notes
 
 Follow [Patrick's repo](https://github.com/PatrickAlphaC/hardhat-fund-me-fcc/tree/typescript) in case anything is missing.
+
+Style guide: https://docs.soliditylang.org/en/latest/style-guide.html
