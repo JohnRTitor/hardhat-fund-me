@@ -11,3 +11,11 @@ REPORT_GAS=true npx hardhat test
 npx hardhat node
 npx hardhat ignition deploy ./ignition/modules/Lock.ts
 ```
+
+## Deps
+```
+yarn add -D hardhat
+yarn add -D dotenv
+yarn add -D hardhat-deploy
+yarn add -D @nomiclabs/hardhat-ethers hardhat-deploy-ethers ethers
+```
