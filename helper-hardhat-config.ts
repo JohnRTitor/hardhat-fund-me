@@ -22,4 +22,8 @@ export const networkConfig: networkConfigInfo = {
   },
 };
 
-export const developmentChains = ["hardhat", "localhost"];
+export const developmentChains: string[] = ["hardhat", "localhost"];
+// DECIMALS is 8 on the MockV3Aggregator
+export const DECIMALS: number = 8;
+// 2000 USD with 8 decimals
+export const INITIAL_ANSWER: number = 200000000000;

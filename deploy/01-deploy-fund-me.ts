@@ -5,7 +5,7 @@
 import { DeployFunction } from "hardhat-deploy/dist/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { ethers, run, network } from "hardhat";
-import { networkConfig } from "../helper-hardhat-config";
+import { developmentChains, networkConfig } from "../helper-hardhat-config";
 
 const deployFunc: DeployFunction = async function (
   hre: HardhatRuntimeEnvironment
@@ -19,7 +19,17 @@ const deployFunc: DeployFunction = async function (
   // grab deployer account from getNamedAccounts()
   const { deployer } = await getNamedAccounts();
 
-  const ethUSDPriceFeedAddress = networkConfig[network.name]["ethUsdPriceFeed"];
+  let ethUSDPriceFeedAddress: string;
+  // we are deploying on a development chain
+  if (developmentChains.includes(network.name)) {
+    // we get the MockV3Aggregator contract from previous mock deployment
+    const ethUsdAggregator = await deployments.get("MockV3Aggregator");
+    ethUSDPriceFeedAddress = ethUsdAggregator.address;
+  }
+  // deploying on a testnet or mainnet
+  else {
+    ethUSDPriceFeedAddress = networkConfig[network.name]["ethUsdPriceFeed"]!;
+  }
   // when going for localhost or hardhat network, we want to use a mock
   // of the price feed of ETH-USD https://docs.chain.link/data-feeds/price-feeds/addresses?network=ethereum&page=1#sepolia-testnet
   const fundMe = await deploy("FundMe", {
