@@ -43,6 +43,18 @@ const config: HardhatUserConfig = {
     L1Etherscan: ETHERSCAN_API_KEY,
     token: "ETH",
   },
+  namedAccounts: {
+    deployer: {
+      // make account 0 the deployer
+      default: 0,
+      // we can also override per chainId
+      // 11155111: 1
+      // ^ means deployer account id is 1 on the Sepolia network
+    },
+    user: {
+      default: 1,
+    },
+  },
   solidity: "0.8.28",
 };
 
