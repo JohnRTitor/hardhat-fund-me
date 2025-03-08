@@ -5,11 +5,9 @@ pragma solidity ^0.8.0;
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
 library PriceConverter {
-    function getPrice() internal view returns (uint256) {
-        AggregatorV3Interface priceFeed = AggregatorV3Interface(
-            // Address: ETH-USD https://docs.chain.link/data-feeds/price-feeds/addresses?network=ethereum&page=1#sepolia-testnet
-            0x694AA1769357215DE4FAC081bf1f309aDC325306
-        );
+    function getPrice(
+        AggregatorV3Interface priceFeed
+    ) internal view returns (uint256) {
         // (uint80 roundId, int price, uint startedAt, uint timeStamp, uint80 answeredInRound) = priceFeed.latestRoundData();
         // we only need the price
         (, int price, , , ) = priceFeed.latestRoundData();
@@ -22,17 +20,11 @@ library PriceConverter {
         return uint256(price * 1e10);
     }
 
-    function getVersion() internal view returns (uint256) {
-        AggregatorV3Interface priceFeed = AggregatorV3Interface(
-            0x694AA1769357215DE4FAC081bf1f309aDC325306
-        );
-        return priceFeed.version();
-    }
-
     function getConversionRate(
-        uint256 ethAmount
+        uint256 ethAmount,
+        AggregatorV3Interface priceFeed
     ) internal view returns (uint256) {
-        uint256 ethPrice = getPrice();
+        uint256 ethPrice = getPrice(priceFeed);
 
         // to calculate eth amount in usd, as in 2$ worth of ETH
         // we can just multiply the price per eth and the amount
