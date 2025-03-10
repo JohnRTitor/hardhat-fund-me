@@ -1,4 +1,4 @@
-import { Contract } from "ethers";
+import { Contract, TransactionReceipt, TransactionResponse } from "ethers";
 import { deployments, ethers, getNamedAccounts } from "hardhat";
 import { assert, expect } from "chai";
 import { AggregatorV3Interface, MockV3Aggregator } from "../../typechain-types";
@@ -8,6 +8,8 @@ describe("FundMe", async () => {
   let fundMe: Contract;
   let mockV3Aggregator: Contract;
   let deployer: Address;
+  // parseEther auto converts the provided ethereum to wei
+  const sendValue: bigint = ethers.parseEther("1"); // 1000000000000000000;
 
   beforeEach(async () => {
     // get the deployer account
@@ -47,9 +49,6 @@ describe("FundMe", async () => {
   });
 
   describe("fund", async () => {
-    // parseEther auto converts the provided ethereum to wei
-    const sendValue = ethers.parseEther("1"); // 1000000000000000000;
-
     it("Fails if we don't send enough ETH", async () => {
       await expect(fundMe.getFunction("fund")()).to.be.revertedWith(
         "Didn't send enough"
@@ -70,6 +69,44 @@ describe("FundMe", async () => {
       // get our funder address
       const funder: Address = await fundMe.getFunction("funders")(0);
       assert.equal(funder, deployer);
+    });
+  });
+
+  describe("withdraw", async () => {
+    beforeEach(async () => {
+      // fund our contract with some ETH
+      await fundMe.fund({ value: sendValue });
+    });
+
+    it("Withdraw ETH from a single funder", async () => {
+      const startingFundMeBalance: bigint = await ethers.provider.getBalance(
+        fundMe.getAddress()
+      );
+      const startingDeployerBalance: bigint = await ethers.provider.getBalance(
+        deployer
+      );
+
+      // withdraw all money from FundMe
+      const tx: TransactionResponse = await fundMe.getFunction("withdraw")();
+      const txReceipt = (await tx.wait(1)) as TransactionReceipt;
+
+      const gasCost: bigint = txReceipt.gasUsed * txReceipt.gasPrice;
+
+      const endingFundMeBalance = await ethers.provider.getBalance(
+        fundMe.getAddress()
+      );
+      const endingDeployerBalance = await ethers.provider.getBalance(deployer);
+
+      assert.equal(endingFundMeBalance.toString(), "0");
+      // Math is like this:
+      // Suppose deployer had initially 100 ETH
+      // it funds 1 ETH to the contract
+      // 1 + 98.95 // not exactly 99, as some gas was used when funding the contract
+      // equals 99.90 + 0.05 // as some gas was used when withdrawing the funds
+      assert.equal(
+        startingFundMeBalance + startingDeployerBalance,
+        endingDeployerBalance + gasCost
+      );
     });
   });
 });
