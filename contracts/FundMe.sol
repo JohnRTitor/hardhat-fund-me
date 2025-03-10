@@ -9,7 +9,7 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interf
 
 // Error codes
 error FundMe__NotOwner();
-error WithdrawFailed();
+error FundMe__WithdrawFailed();
 
 // Interfaces, Libraries, Contracts
 
@@ -97,7 +97,7 @@ contract FundMe {
             value: address(this).balance
         }("");
         if (!callSuccess) {
-            revert WithdrawFailed();
+            revert FundMe__WithdrawFailed();
         }
     }
 }

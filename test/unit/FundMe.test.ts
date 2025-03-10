@@ -1,4 +1,10 @@
-import { Contract, TransactionReceipt, TransactionResponse } from "ethers";
+import {
+  BaseContract,
+  Contract,
+  Signer,
+  TransactionReceipt,
+  TransactionResponse,
+} from "ethers";
 import { deployments, ethers, getNamedAccounts } from "hardhat";
 import { assert, expect } from "chai";
 import { AggregatorV3Interface, MockV3Aggregator } from "../../typechain-types";
@@ -6,14 +12,15 @@ import { Address } from "hardhat-deploy/dist/types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 describe("FundMe", async () => {
-  let fundMe: Contract;
+  let fundMe: BaseContract;
   let mockV3Aggregator: Contract;
+  let accounts: SignerWithAddress[];
   let deployer: SignerWithAddress;
   // parseEther auto converts the provided ethereum to wei
   const sendValue: bigint = ethers.parseEther("1"); // 1000000000000000000;
 
   beforeEach(async () => {
-    const accounts: SignerWithAddress[] = await ethers.getSigners();
+    accounts = await ethers.getSigners();
     // get the deployer account, usually the first account in the list
     deployer = accounts[0];
     // run all deploy scripts tagged with "all"
@@ -78,7 +85,7 @@ describe("FundMe", async () => {
   describe("withdraw", async () => {
     beforeEach(async () => {
       // fund our contract with some ETH
-      await fundMe.fund({ value: sendValue });
+      await fundMe.getFunction("fund")({ value: sendValue });
     });
 
     it("Withdraw ETH from a single funder", async () => {
@@ -110,6 +117,67 @@ describe("FundMe", async () => {
         startingFundMeBalance + startingDeployerBalance,
         endingDeployerBalance + gasCost
       );
+    });
+
+    it("Withdraw with multiple funders", async () => {
+      for (let i = 1; i < 6; i++) {
+        // connect with different accounts, as by default connected with deployer
+        const fundMeConnectedContract: BaseContract = await fundMe.connect(
+          accounts[i]
+        );
+        await fundMeConnectedContract.getFunction("fund")({
+          value: sendValue,
+        });
+      }
+
+      const startingFundMeBalance: bigint = await ethers.provider.getBalance(
+        fundMe.getAddress()
+      );
+      const startingDeployerBalance: bigint = await ethers.provider.getBalance(
+        deployer.address
+      );
+
+      // withdraw all funds as the owner
+      const tx: TransactionResponse = await fundMe.getFunction("withdraw")();
+      const txReceipt = (await tx.wait(1)) as TransactionReceipt;
+      const gasCost: bigint = txReceipt.gasUsed * txReceipt.gasPrice;
+
+      const endingFundMeBalance: bigint = await ethers.provider.getBalance(
+        fundMe.getAddress()
+      );
+      const endingDeployerBalance: bigint = await ethers.provider.getBalance(
+        deployer.address
+      );
+
+      assert.equal(endingFundMeBalance, 0n);
+      assert.equal(
+        startingFundMeBalance + startingDeployerBalance,
+        endingDeployerBalance + gasCost
+      );
+
+      // make sure funders array is reset
+      await expect(fundMe.getFunction("funders")(0)).to.be.reverted;
+
+      for (let i = 1; i < 6; i++) {
+        // make sure addressToAmountFunded has all values to 0
+        assert.equal(
+          await fundMe.getFunction("addressToAmountFunded")(
+            accounts[i].address
+          ),
+          0n
+        );
+      }
+    });
+
+    it("Only allows owner to withdraw", async () => {
+      // use an account other than the owner/deployer to withdraw
+      const scammer: SignerWithAddress = accounts[1];
+      const scammerConnectedContract: BaseContract = await fundMe.connect(
+        scammer
+      );
+
+      await expect(scammerConnectedContract.getFunction("withdraw")()).to.be
+        .reverted;
     });
   });
 
