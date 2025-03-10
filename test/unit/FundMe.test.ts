@@ -3,17 +3,19 @@ import { deployments, ethers, getNamedAccounts } from "hardhat";
 import { assert, expect } from "chai";
 import { AggregatorV3Interface, MockV3Aggregator } from "../../typechain-types";
 import { Address } from "hardhat-deploy/dist/types";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 describe("FundMe", async () => {
   let fundMe: Contract;
   let mockV3Aggregator: Contract;
-  let deployer: Address;
+  let deployer: SignerWithAddress;
   // parseEther auto converts the provided ethereum to wei
   const sendValue: bigint = ethers.parseEther("1"); // 1000000000000000000;
 
   beforeEach(async () => {
-    // get the deployer account
-    deployer = (await getNamedAccounts()).deployer;
+    const accounts: SignerWithAddress[] = await ethers.getSigners();
+    // get the deployer account, usually the first account in the list
+    deployer = accounts[0];
     // run all deploy scripts tagged with "all"
     await deployments.fixture(["all"]);
 
@@ -48,6 +50,18 @@ describe("FundMe", async () => {
     });
   });
 
+  // Helper function to test funding logic
+  async function testFundFunctionality() {
+    // get the amount funded by the deployer
+    const amountFunded = await fundMe.getFunction("addressToAmountFunded")(
+      deployer.address
+    );
+    assert.equal(amountFunded.toString(), sendValue.toString());
+
+    const funder: Address = await fundMe.getFunction("funders")(0);
+    assert.equal(funder, deployer.address);
+  }
+
   describe("fund", async () => {
     it("Fails if we don't send enough ETH", async () => {
       await expect(fundMe.getFunction("fund")()).to.be.revertedWith(
@@ -55,20 +69,9 @@ describe("FundMe", async () => {
       );
     });
 
-    it("Updates the addressToAmountFunded mapping", async () => {
+    it("Updates the addressToAmountFunded mapping and adds to funders array", async () => {
       await fundMe.getFunction("fund")({ value: sendValue });
-      // get the amount funded by the deployer
-      const amountFunded = await fundMe.getFunction("addressToAmountFunded")(
-        deployer
-      );
-      assert.equal(amountFunded.toString(), sendValue.toString());
-    });
-
-    it("Adds funder to array of funders", async () => {
-      await fundMe.getFunction("fund")({ value: sendValue });
-      // get our funder address
-      const funder: Address = await fundMe.getFunction("funders")(0);
-      assert.equal(funder, deployer);
+      await testFundFunctionality(); // Reuse test logic
     });
   });
 
@@ -83,7 +86,7 @@ describe("FundMe", async () => {
         fundMe.getAddress()
       );
       const startingDeployerBalance: bigint = await ethers.provider.getBalance(
-        deployer
+        deployer.address
       );
 
       // withdraw all money from FundMe
@@ -107,6 +110,28 @@ describe("FundMe", async () => {
         startingFundMeBalance + startingDeployerBalance,
         endingDeployerBalance + gasCost
       );
+    });
+  });
+
+  describe("receive and fallback triggers fund function", async () => {
+    it("Sent without any data (receive)", async () => {
+      const tx = await deployer.sendTransaction({
+        to: fundMe.getAddress(),
+        value: sendValue,
+        data: "0x", // sending with no data
+      });
+      // should trigger receive function, which runs the fund function
+      await testFundFunctionality();
+    });
+
+    it("Sent with invalid data (fallback)", async () => {
+      const tx = await deployer.sendTransaction({
+        to: fundMe.getAddress(),
+        value: sendValue,
+        data: "0x1234", // sending with invalid data
+      });
+      // should trigger fallback function, which runs the fund function
+      await testFundFunctionality();
     });
   });
 });
