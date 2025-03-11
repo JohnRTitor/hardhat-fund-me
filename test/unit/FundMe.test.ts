@@ -48,7 +48,7 @@ describe("FundMe", async () => {
       // priceFeed was of type AggregatorV3Interface, but now that it's deployed
       // it's Contract
       const priceFeedAggregatorAddress: Contract = await fundMe.getFunction(
-        "priceFeed"
+        "s_priceFeed"
       )();
       assert.equal(
         priceFeedAggregatorAddress.address,
@@ -60,12 +60,12 @@ describe("FundMe", async () => {
   // Helper function to test funding logic
   async function testFundFunctionality() {
     // get the amount funded by the deployer
-    const amountFunded = await fundMe.getFunction("addressToAmountFunded")(
+    const amountFunded = await fundMe.getFunction("s_addressToAmountFunded")(
       deployer.address
     );
     assert.equal(amountFunded.toString(), sendValue.toString());
 
-    const funder: Address = await fundMe.getFunction("funders")(0);
+    const funder: Address = await fundMe.getFunction("s_funders")(0);
     assert.equal(funder, deployer.address);
   }
 
@@ -156,12 +156,12 @@ describe("FundMe", async () => {
       );
 
       // make sure funders array is reset
-      await expect(fundMe.getFunction("funders")(0)).to.be.reverted;
+      await expect(fundMe.getFunction("s_funders")(0)).to.be.reverted;
 
       for (let i = 1; i < 6; i++) {
         // make sure addressToAmountFunded has all values to 0
         assert.equal(
-          await fundMe.getFunction("addressToAmountFunded")(
+          await fundMe.getFunction("s_addressToAmountFunded")(
             accounts[i].address
           ),
           0n

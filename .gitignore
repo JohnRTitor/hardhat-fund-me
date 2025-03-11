@@ -15,6 +15,7 @@ node_modules
 /cache
 /artifacts
 /deployments
+gas-report.txt
 
 # TypeChain files
 /typechain
