@@ -48,7 +48,7 @@ describe("FundMe", async () => {
       // priceFeed was of type AggregatorV3Interface, but now that it's deployed
       // it's Contract
       const priceFeedAggregatorAddress: Contract = await fundMe.getFunction(
-        "s_priceFeed"
+        "getPriceFeed"
       )();
       assert.equal(
         priceFeedAggregatorAddress.address,
@@ -60,12 +60,12 @@ describe("FundMe", async () => {
   // Helper function to test funding logic
   async function testFundFunctionality() {
     // get the amount funded by the deployer
-    const amountFunded = await fundMe.getFunction("s_addressToAmountFunded")(
+    const amountFunded = await fundMe.getFunction("getAddressToAmountFunded")(
       deployer.address
     );
     assert.equal(amountFunded.toString(), sendValue.toString());
 
-    const funder: Address = await fundMe.getFunction("s_funders")(0);
+    const funder: Address = await fundMe.getFunction("getFunder")(0);
     assert.equal(funder, deployer.address);
   }
 
@@ -156,12 +156,12 @@ describe("FundMe", async () => {
       );
 
       // make sure funders array is reset
-      await expect(fundMe.getFunction("s_funders")(0)).to.be.reverted;
+      await expect(fundMe.getFunction("getFunder")(0)).to.be.reverted;
 
       for (let i = 1; i < 6; i++) {
         // make sure addressToAmountFunded has all values to 0
         assert.equal(
-          await fundMe.getFunction("s_addressToAmountFunded")(
+          await fundMe.getFunction("getAddressToAmountFunded")(
             accounts[i].address
           ),
           0n
@@ -178,6 +178,58 @@ describe("FundMe", async () => {
 
       await expect(scammerConnectedContract.getFunction("withdraw")()).to.be
         .reverted;
+    });
+
+    it("cheapWithdraw testing...", async () => {
+      for (let i = 1; i < 6; i++) {
+        // connect with different accounts, as by default connected with deployer
+        const fundMeConnectedContract: BaseContract = await fundMe.connect(
+          accounts[i]
+        );
+        await fundMeConnectedContract.getFunction("fund")({
+          value: sendValue,
+        });
+      }
+
+      const startingFundMeBalance: bigint = await ethers.provider.getBalance(
+        fundMe.getAddress()
+      );
+      const startingDeployerBalance: bigint = await ethers.provider.getBalance(
+        deployer.address
+      );
+
+      // withdraw all funds as the owner
+      const tx: TransactionResponse = await fundMe.getFunction(
+        "cheaperWithdraw"
+      )();
+      const txReceipt = (await tx.wait(1)) as TransactionReceipt;
+      const gasCost: bigint = txReceipt.gasUsed * txReceipt.gasPrice;
+
+      const endingFundMeBalance: bigint = await ethers.provider.getBalance(
+        fundMe.getAddress()
+      );
+      const endingDeployerBalance: bigint = await ethers.provider.getBalance(
+        deployer.address
+      );
+
+      assert.equal(endingFundMeBalance, 0n);
+      assert.equal(
+        startingFundMeBalance + startingDeployerBalance,
+        endingDeployerBalance + gasCost
+      );
+
+      // make sure funders array is reset
+      await expect(fundMe.getFunction("getFunder")(0)).to.be.reverted;
+
+      for (let i = 1; i < 6; i++) {
+        // make sure addressToAmountFunded has all values to 0
+        assert.equal(
+          await fundMe.getFunction("getAddressToAmountFunded")(
+            accounts[i].address
+          ),
+          0n
+        );
+      }
     });
   });
 
