@@ -10,7 +10,7 @@ library PriceConverter {
     ) internal view returns (uint256) {
         // (uint80 roundId, int price, uint startedAt, uint timeStamp, uint80 answeredInRound) = priceFeed.latestRoundData();
         // we only need the price
-        (, int price, , , ) = priceFeed.latestRoundData();
+        (, int256 price, , , ) = priceFeed.latestRoundData();
 
         // Price is ETH in terms of USD
         // we know eth is like 2000
