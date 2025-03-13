@@ -2,7 +2,7 @@
 // in this script. The scripts in deploy/ are executed in order
 // of their filename
 
-import { DeployFunction } from "hardhat-deploy/dist/types";
+import { DeployResult } from "hardhat-deploy/dist/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { ethers, run, network } from "hardhat";
 import { developmentChains, networkConfig } from "../helper-hardhat-config";
@@ -33,7 +33,7 @@ const deployFundMe = async ({
     ethUSDPriceFeedAddress = networkConfig[network.name]["ethUsdPriceFeed"]!;
   }
 
-  const fundMe = await deploy("FundMe", {
+  const fundMe: DeployResult = await deploy("FundMe", {
     // list of overrides we can apply to the constructor
     from: deployer,
     // pass price feed address as an argument
